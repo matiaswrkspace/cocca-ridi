@@ -60,7 +60,7 @@ export async function POST(req: Request, { params }: { params: { code: string } 
 
   let cardIdx = 0
   for (const pid of playerIds) {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       const cardId = shuffledAnswers[cardIdx++]
       handInserts.push({ player_id: pid, room_id: room.id, card_id: cardId })
       usedAnswerInserts.push({ room_id: room.id, card_id: cardId })
