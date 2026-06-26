@@ -135,12 +135,15 @@ export default function Home() {
         )}
       </div>
 
-      {/* Jack Black badge */}
-      <div className="relative z-10 mt-10 flex items-center gap-3 glass px-5 py-3 rounded-full animate-fade-in">
-        <div className="jack-avatar w-9 h-9 text-xs">JB</div>
-        <span className="text-emerald-200 text-sm">
-          Il banco è <strong className="text-white">Jack Black</strong>. cala le mutandine sciocchina
-        </span>
+      {/* Jack Black chat bubble */}
+      <div className="relative z-10 mt-10 flex items-end gap-3 animate-fade-in max-w-sm">
+        <div className="jack-avatar w-10 h-10 text-xs shrink-0">JB</div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-emerald-400 text-xs font-bold ml-1">Jack Black</span>
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-lg">
+            <p className="text-white text-sm leading-snug">Sono il mazziere, cala le mutandine sciocchina!</p>
+          </div>
+        </div>
       </div>
 
       {/* CREATE MODAL */}
