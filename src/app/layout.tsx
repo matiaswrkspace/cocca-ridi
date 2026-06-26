@@ -5,8 +5,12 @@ export const metadata: Metadata = {
   title: 'Cocca Ridi',
   description: "Il gioco di carte più divertente d'Italia",
   icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-icon.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/favicon.ico', sizes: '16x16' },
+    ],
+    apple: { url: '/apple-icon.png', sizes: '180x180' },
+    shortcut: '/favicon.ico',
   },
 }
 
