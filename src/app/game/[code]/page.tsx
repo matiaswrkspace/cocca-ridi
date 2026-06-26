@@ -54,13 +54,28 @@ export default function GamePage({ params }: PageProps) {
       const playersData = (rawPlayers ?? []) as Player[]
       setPlayers(playersData)
 
-      if (playerId) {
-        const me = playersData.find((p: Player) => p.id === playerId)
+      // Session recovery: if no player_${code} key, try matching via cocca_session_id
+      let currentPlayerId = playerId
+      if (!currentPlayerId) {
+        const globalSession = localStorage.getItem('cocca_session_id')
+        if (globalSession) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const recovered = playersData.find((p: any) => p.session_id === globalSession)
+          if (recovered) {
+            localStorage.setItem(`player_${code}`, recovered.id)
+            setPlayerId(recovered.id)
+            currentPlayerId = recovered.id
+          }
+        }
+      }
+
+      if (currentPlayerId) {
+        const me = playersData.find((p: Player) => p.id === currentPlayerId)
         setMyPlayer(me ?? null)
 
         // Load hand
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: rawHand } = await supabase.from('player_hands').select('*').eq('player_id', playerId).eq('room_id', roomData.id) as any
+        const { data: rawHand } = await supabase.from('player_hands').select('*').eq('player_id', currentPlayerId).eq('room_id', roomData.id) as any
         setMyHand((rawHand ?? []) as PlayerHand[])
       }
 
