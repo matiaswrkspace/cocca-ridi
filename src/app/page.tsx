@@ -142,11 +142,11 @@ export default function Home() {
       </div>
 
       {/* Jack Black chat bubble */}
-      <div className="relative z-10 mt-10 flex items-end gap-3 animate-fade-in max-w-sm">
+      <div className="relative z-10 mt-10 flex items-end gap-3 animate-fade-in max-w-sm" style={{ minHeight: '66px' }}>
         <div className="jack-avatar w-10 h-10 text-xs shrink-0">JB</div>
         <div className="flex flex-col gap-0.5">
           <span className="text-emerald-400 text-xs font-bold ml-1">Jack Black</span>
-          <div className="bg-white/15 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-lg min-h-[44px] flex items-center" style={{ minWidth: '280px' }}>
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl rounded-bl-sm px-4 py-3 shadow-lg min-h-[44px] flex items-center">
             {jackTyping ? (
               <div className="flex gap-1.5 items-center py-0.5">
                 <span className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
