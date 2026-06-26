@@ -63,11 +63,16 @@ export default function Podium({ players, onNewGame, isHost }: PodiumProps) {
     nextRank = ranked[i].rank + 1
   }
 
-  const firstPlace = ranked.filter(r => r.rank === 1).slice(0, 2)
-  const secondPlace = ranked.filter(r => r.rank === 2).slice(0, 1)
-  const thirdPlace = ranked.filter(r => r.rank === 3).slice(0, 1)
-  const rest = ranked.filter(r => r.rank > 3)
-  const isTied = firstPlace.length > 1
+  // Always put exactly 1st/2nd/3rd on podium by sorted position, then "rest"
+  const podium1 = sorted[0] ? [sorted[0]] : []
+  const podium2 = sorted[1] ? [sorted[1]] : []
+  const podium3 = sorted[2] ? [sorted[2]] : []
+  const rest = sorted.slice(3).map((p, i) => ({ player: p, rank: i + 4 }))
+
+  const firstPlace = podium1
+  const secondPlace = podium2
+  const thirdPlace = podium3
+  const isTied = podium1.length > 0 && podium2.length > 0 && podium1[0].score === podium2[0].score
   const globalIndex = (id: string) => players.findIndex(p => p.id === id)
 
   return (
@@ -89,10 +94,10 @@ export default function Podium({ players, onNewGame, isHost }: PodiumProps) {
           {secondPlace[0] && (
             <div className="flex flex-col items-center animate-slide-up delay-200">
               <div className="text-3xl mb-2">🥈</div>
-              <PlayerAvatar name={secondPlace[0].player.name} index={globalIndex(secondPlace[0].player.id)} />
+              <PlayerAvatar name={secondPlace[0].name} index={globalIndex(secondPlace[0].id)} />
               <div className="bg-white rounded-2xl p-3 text-center mt-2 mb-1 shadow-xl w-24">
-                <p className="font-black text-xs text-gray-700 truncate">{secondPlace[0].player.name}</p>
-                <p className="text-xl font-black text-gray-700">{secondPlace[0].player.score}</p>
+                <p className="font-black text-xs text-gray-700 truncate">{secondPlace[0].name}</p>
+                <p className="text-xl font-black text-gray-700">{secondPlace[0].score}</p>
                 <p className="text-[10px] text-gray-400 font-semibold">punti</p>
               </div>
               <div className="podium-2 w-24 h-28 rounded-t-xl flex items-end justify-center pb-2">
@@ -101,20 +106,20 @@ export default function Podium({ players, onNewGame, isHost }: PodiumProps) {
             </div>
           )}
 
-          {/* 1st place — up to 2 players */}
-          {firstPlace.map((r, i) => (
-            <div key={r.player.id} className="flex flex-col items-center animate-pop-in" style={{ animationDelay: `${i * 100}ms` }}>
-              <div className={`text-4xl mb-2 animate-bounce`} style={{ animationDelay: `${i * 200}ms` }}>
+          {/* 1st place */}
+          {firstPlace[0] && (
+            <div className="flex flex-col items-center animate-pop-in">
+              <div className="text-4xl mb-2 animate-bounce">
                 {isTied ? '🤝' : '👑'}
               </div>
-              <PlayerAvatar name={r.player.name} index={globalIndex(r.player.id)} size="lg" />
+              <PlayerAvatar name={firstPlace[0].name} index={globalIndex(firstPlace[0].id)} size="lg" />
               <div className={`bg-white rounded-2xl p-3 text-center mt-2 mb-1 shadow-2xl w-28
                 ${isTied ? 'ring-4 ring-teal-400' : 'ring-4 ring-yellow-400'}`}>
                 <p className={`font-black text-xs truncate ${isTied ? 'text-teal-700' : 'text-yellow-700'}`}>
-                  {r.player.name}
+                  {firstPlace[0].name}
                 </p>
                 <p className={`text-2xl font-black ${isTied ? 'text-teal-600' : 'text-yellow-500'}`}>
-                  {r.player.score}
+                  {firstPlace[0].score}
                 </p>
                 <p className="text-[10px] text-gray-400 font-semibold">punti</p>
               </div>
@@ -122,16 +127,16 @@ export default function Podium({ players, onNewGame, isHost }: PodiumProps) {
                 <span className="text-white font-black text-2xl">1</span>
               </div>
             </div>
-          ))}
+          )}
 
           {/* 3rd place */}
           {thirdPlace[0] && (
             <div className="flex flex-col items-center animate-slide-up delay-300">
               <div className="text-3xl mb-2">🥉</div>
-              <PlayerAvatar name={thirdPlace[0].player.name} index={globalIndex(thirdPlace[0].player.id)} />
+              <PlayerAvatar name={thirdPlace[0].name} index={globalIndex(thirdPlace[0].id)} />
               <div className="bg-white rounded-2xl p-3 text-center mt-2 mb-1 shadow-xl w-24">
-                <p className="font-black text-xs text-gray-700 truncate">{thirdPlace[0].player.name}</p>
-                <p className="text-xl font-black text-orange-700">{thirdPlace[0].player.score}</p>
+                <p className="font-black text-xs text-gray-700 truncate">{thirdPlace[0].name}</p>
+                <p className="text-xl font-black text-orange-700">{thirdPlace[0].score}</p>
                 <p className="text-[10px] text-gray-400 font-semibold">punti</p>
               </div>
               <div className="podium-3 w-24 h-20 rounded-t-xl flex items-end justify-center pb-2">
@@ -141,7 +146,7 @@ export default function Podium({ players, onNewGame, isHost }: PodiumProps) {
           )}
         </div>
 
-        {/* Rest */}
+        {/* Rest (4th place and beyond) */}
         {rest.length > 0 && (
           <div className="glass-dark rounded-2xl p-4 mb-6 animate-slide-up delay-400">
             <p className="text-emerald-300 text-xs font-bold uppercase tracking-widest mb-3 text-center">Altri giocatori</p>
