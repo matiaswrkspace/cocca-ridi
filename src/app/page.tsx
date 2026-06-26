@@ -98,7 +98,7 @@ export default function Home() {
           Cocca Ridi
         </h1>
         <p className="text-emerald-300 text-lg font-medium mb-5">
-          Ma se ridi esclie
+          Ma se ridi escile...
         </p>
         <div className="flex items-center justify-center gap-4 text-sm">
           <div className="glass px-4 py-2 rounded-full text-emerald-200 font-semibold">🎴 100 domande</div>

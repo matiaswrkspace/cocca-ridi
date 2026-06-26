@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Cocca Ridi',
-  description: "Ma se ridi esclie",
+  description: "Ma se ridi escile...",
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32' },
