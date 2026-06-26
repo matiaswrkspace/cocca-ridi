@@ -12,9 +12,9 @@ function generateCode(): string {
 
 export async function POST(req: Request) {
   const supabase = getSupabaseServer()
-  const { maxPlayers, totalRounds, sessionId } = await req.json()
+  const { maxPlayers, totalRounds, sessionId, hostName } = await req.json()
 
-  if (!maxPlayers || !totalRounds || !sessionId) {
+  if (!maxPlayers || !totalRounds || !sessionId || !hostName?.trim()) {
     return NextResponse.json({ error: 'Dati mancanti' }, { status: 400 })
   }
   if (maxPlayers < 4 || maxPlayers > 12 || totalRounds < 5 || totalRounds > 15) {
@@ -53,10 +53,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Errore creazione stanza' }, { status: 500 })
   }
 
-  // Create host player
+  // Create host player with the provided name
   const { data: player, error: playerError } = await supabase
     .from('players')
-    .insert({ room_id: room.id, name: 'Host', is_host: true, session_id: sessionId })
+    .insert({ room_id: room.id, name: hostName.trim(), is_host: true, session_id: sessionId })
     .select()
     .single()
 

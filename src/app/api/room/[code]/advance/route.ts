@@ -207,26 +207,30 @@ async function determineAndAwardWinner(supabase: ReturnType<typeof getSupabaseSe
     voteCounts[v.submission_id] = (voteCounts[v.submission_id] ?? 0) + 1
   }
 
-  const winnerId = Object.entries(voteCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
-  if (!winnerId) return
+  const maxVotes = Math.max(...Object.values(voteCounts))
+  // All submissions tied at the top get +1 point
+  const winnerIds = Object.entries(voteCounts)
+    .filter(([, count]) => count === maxVotes)
+    .map(([id]) => id)
 
-  const { data: submission } = await supabase
-    .from('round_submissions')
-    .select('player_id')
-    .eq('id', winnerId)
-    .single()
+  for (const winnerId of winnerIds) {
+    const { data: submission } = await supabase
+      .from('round_submissions')
+      .select('player_id')
+      .eq('id', winnerId)
+      .single()
 
-  if (!submission) return
+    if (!submission) continue
 
-  // Award 1 point
-  const { data: player } = await supabase
-    .from('players')
-    .select('score')
-    .eq('id', submission.player_id)
-    .single()
+    const { data: player } = await supabase
+      .from('players')
+      .select('score')
+      .eq('id', submission.player_id)
+      .single()
 
-  if (player) {
-    await supabase.from('players').update({ score: player.score + 1 }).eq('id', submission.player_id)
+    if (player) {
+      await supabase.from('players').update({ score: player.score + 1 }).eq('id', submission.player_id)
+    }
   }
 }
 

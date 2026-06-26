@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import type { Room, Player, RoundSubmission, RoundVote, PlayerHand } from '@/types/game'
 import { PHASE_DURATIONS, REVEAL_DURATION } from '@/types/game'
 import { getAnswerById, getQuestionById } from '@/lib/cards'
-import { QuestionCard, AnswerCard, CardBack } from './CardComponent'
+import { QuestionCard, AnswerCard } from './CardComponent'
 
 interface GameBoardProps {
   room: Room
@@ -14,8 +14,8 @@ interface GameBoardProps {
   votes: RoundVote[]
   myHand: PlayerHand[]
   onAdvance: (fromPhase: string, revealIndex?: number) => void
-  onSubmit: (cardId: number) => void
-  onVote: (submissionId: string) => void
+  onSubmit: (cardId: number) => Promise<{ allSubmitted?: boolean }>
+  onVote: (submissionId: string) => Promise<{ allVoted?: boolean }>
   onEndGame: () => void
 }
 
@@ -37,20 +37,28 @@ export default function GameBoard({
 }: GameBoardProps) {
   const [timeLeft, setTimeLeft] = useState(0)
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null)
-  const [hasSubmitted, setHasSubmitted] = useState(false)
-  const [hasVoted, setHasVoted] = useState(false)
+  // Optimistic states — set immediately on user action, reset on phase change
+  const [submittedThisPhase, setSubmittedThisPhase] = useState(false)
+  const [votedThisPhase, setVotedThisPhase] = useState(false)
   const advancedRef = useRef<string>('')
+  const currentPhaseKey = `${room.phase}-${room.current_round}`
+
+  // Reset optimistic states when phase/round changes
+  useEffect(() => {
+    setSubmittedThisPhase(false)
+    setVotedThisPhase(false)
+    setSelectedCardId(null)
+  }, [currentPhaseKey])
 
   const question = room.current_question_id ? getQuestionById(room.current_question_id) : null
 
-  // Check submission/vote status
+  // Check if already submitted/voted via DB state (in case of reconnect)
   const mySubmission = submissions.find(s => s.player_id === myPlayer.id)
   const myVote = votes.find(v => v.voter_id === myPlayer.id)
+  const hasSubmitted = submittedThisPhase || !!mySubmission
+  const hasVoted = votedThisPhase || !!myVote
 
-  useEffect(() => { setHasSubmitted(!!mySubmission) }, [mySubmission])
-  useEffect(() => { setHasVoted(!!myVote) }, [myVote])
-
-  // Phase timer
+  // Phase timer — drives the UI countdown and triggers advance when it hits 0
   useEffect(() => {
     if (!room.phase_started_at) return
     const duration = PHASE_DURATIONS[room.phase]
@@ -58,55 +66,87 @@ export default function GameBoard({
 
     const startTime = new Date(room.phase_started_at).getTime()
     const endTime = startTime + duration * 1000
-    const advanceKey = `${room.phase}-${room.phase_started_at}`
+    const advanceKey = `timer-${room.phase}-${room.phase_started_at}`
 
     const tick = () => {
       const now = Date.now()
       const remaining = Math.max(0, Math.ceil((endTime - now) / 1000))
       setTimeLeft(remaining)
-
       if (remaining === 0 && advancedRef.current !== advanceKey) {
         advancedRef.current = advanceKey
         onAdvance(room.phase)
       }
     }
-
     tick()
     const interval = setInterval(tick, 250)
     return () => clearInterval(interval)
   }, [room.phase, room.phase_started_at, onAdvance])
 
-  // Auto-advance reveal index
+  // Auto-advance when all players submitted (detecting via realtime updates)
+  useEffect(() => {
+    if (room.phase !== 'selecting') return
+    if (submissions.length >= players.length) {
+      const advanceKey = `allsubmit-${room.current_round}-${submissions.length}`
+      if (advancedRef.current !== advanceKey) {
+        advancedRef.current = advanceKey
+        onAdvance('selecting')
+      }
+    }
+  }, [submissions.length, players.length, room.phase, room.current_round, onAdvance])
+
+  // Auto-advance when all players voted
+  useEffect(() => {
+    if (room.phase !== 'voting') return
+    if (votes.length >= players.length) {
+      const advanceKey = `allvote-${room.current_round}-${votes.length}`
+      if (advancedRef.current !== advanceKey) {
+        advancedRef.current = advanceKey
+        onAdvance('voting')
+      }
+    }
+  }, [votes.length, players.length, room.phase, room.current_round, onAdvance])
+
+  // Auto-advance reveal index every REVEAL_DURATION seconds
   useEffect(() => {
     if (room.phase !== 'revealing' || !room.phase_started_at) return
-
     const revealKey = `reveal-${room.current_round}-${room.reveal_index}`
-    const startTime = new Date(room.phase_started_at).getTime()
-    const endTime = startTime + REVEAL_DURATION * 1000 + (room.reveal_index * REVEAL_DURATION * 1000)
-
-    // Actually each reveal_index advance resets phase_started_at... let's use a simple delay
     const timeout = setTimeout(() => {
       if (advancedRef.current !== revealKey) {
         advancedRef.current = revealKey
         onAdvance('revealing', room.reveal_index)
       }
     }, REVEAL_DURATION * 1000)
-
     return () => clearTimeout(timeout)
   }, [room.phase, room.current_round, room.reveal_index, room.phase_started_at, onAdvance])
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedCardId || hasSubmitted) return
-    setHasSubmitted(true)
-    onSubmit(selectedCardId)
+    setSubmittedThisPhase(true) // optimistic
+    const result = await onSubmit(selectedCardId)
     setSelectedCardId(null)
-  }, [selectedCardId, hasSubmitted, onSubmit])
+    // If server confirms everyone submitted, advance immediately
+    if (result?.allSubmitted) {
+      const advanceKey = `allsubmit-server-${room.current_round}`
+      if (advancedRef.current !== advanceKey) {
+        advancedRef.current = advanceKey
+        onAdvance('selecting')
+      }
+    }
+  }, [selectedCardId, hasSubmitted, onSubmit, onAdvance, room.current_round])
 
-  const handleVote = useCallback((submissionId: string) => {
+  const handleVote = useCallback(async (submissionId: string) => {
     if (hasVoted) return
-    setHasVoted(true)
-    onVote(submissionId)
-  }, [hasVoted, onVote])
+    setVotedThisPhase(true) // optimistic
+    const result = await onVote(submissionId)
+    // If server confirms everyone voted, advance immediately
+    if (result?.allVoted) {
+      const advanceKey = `allvote-server-${room.current_round}`
+      if (advancedRef.current !== advanceKey) {
+        advancedRef.current = advanceKey
+        onAdvance('voting')
+      }
+    }
+  }, [hasVoted, onVote, onAdvance, room.current_round])
 
   // Sorted submissions by display_order
   const sortedSubmissions = [...submissions].sort((a, b) => (a.display_order ?? 99) - (b.display_order ?? 99))
@@ -117,22 +157,23 @@ export default function GameBoard({
   for (const v of votes) {
     voteCounts[v.submission_id] = (voteCounts[v.submission_id] ?? 0) + 1
   }
-  const winnerSubmissionId = Object.entries(voteCounts).sort((a, b) => b[1] - a[1])[0]?.[0]
-  const winnerSubmission = submissions.find(s => s.id === winnerSubmissionId)
-  const winnerPlayer = players.find(p => p.id === winnerSubmission?.player_id)
+  const maxVotes = votes.length > 0 ? Math.max(...Object.values(voteCounts)) : 0
+  const winnerSubmissions = submissions.filter(s => (voteCounts[s.id] ?? 0) === maxVotes && maxVotes > 0)
+  const winnerPlayers = winnerSubmissions.map(s => players.find(p => p.id === s.player_id)).filter(Boolean)
 
   const submittedCount = submissions.length
   const votedCount = votes.length
   const totalPlayers = players.length
 
+  const EndGameButton = () =>
+    myPlayer.is_host ? (
+      <button onClick={onEndGame} className="btn-danger mt-8 text-sm opacity-50 hover:opacity-100 transition-opacity">
+        Termina Partita
+      </button>
+    ) : null
+
   // ─── COUNTDOWN ───────────────────────────────────────────────────────────────
   if (room.phase === 'countdown') {
-    const dur = PHASE_DURATIONS.countdown!
-    const elapsed = room.phase_started_at
-      ? Math.floor((Date.now() - new Date(room.phase_started_at).getTime()) / 1000)
-      : 0
-    const remaining = Math.max(0, dur - elapsed)
-
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-teal-900 to-teal-800 p-6">
         <div className="text-center animate-bounce-in">
@@ -140,7 +181,7 @@ export default function GameBoard({
           <h2 className="text-3xl font-black text-white mb-2">La partita inizia!</h2>
           <p className="text-teal-200 mb-8">Preparatevi...</p>
           <div className="w-32 h-32 rounded-full border-4 border-white/50 flex items-center justify-center mx-auto mb-8">
-            <span className="text-6xl font-black text-white">{timeLeft || remaining}</span>
+            <span className="text-6xl font-black text-white">{timeLeft}</span>
           </div>
           <p className="text-teal-200 text-sm">Round 1 di {room.total_rounds}</p>
         </div>
@@ -165,11 +206,7 @@ export default function GameBoard({
           })}
         </div>
         <Timer seconds={timeLeft} />
-        {myPlayer.is_host && (
-          <button onClick={onEndGame} className="btn-danger mt-8 text-sm opacity-60 hover:opacity-100">
-            Termina Partita
-          </button>
-        )}
+        <EndGameButton />
       </div>
     )
   }
@@ -189,11 +226,7 @@ export default function GameBoard({
           {question && <QuestionCard text={question.text} className="animate-bounce-in" />}
         </div>
         <Timer seconds={timeLeft} />
-        {myPlayer.is_host && (
-          <button onClick={onEndGame} className="btn-danger mt-8 text-sm opacity-60 hover:opacity-100">
-            Termina Partita
-          </button>
-        )}
+        <EndGameButton />
       </div>
     )
   }
@@ -209,7 +242,6 @@ export default function GameBoard({
           </div>
         </div>
 
-        {/* Question reminder */}
         <div className="w-full max-w-md bg-white/10 rounded-2xl p-4 mb-6 flex gap-4 items-start">
           <div className="jack-avatar w-12 h-12 text-xl flex-shrink-0">JB</div>
           <div>
@@ -218,7 +250,7 @@ export default function GameBoard({
           </div>
         </div>
 
-        {hasSubmitted || mySubmission ? (
+        {hasSubmitted ? (
           <div className="text-center py-12">
             <div className="text-5xl mb-4">✅</div>
             <p className="text-white text-xl font-bold">Risposta inviata!</p>
@@ -253,11 +285,7 @@ export default function GameBoard({
             </button>
           </>
         )}
-        {myPlayer.is_host && (
-          <button onClick={onEndGame} className="btn-danger mt-8 text-sm opacity-60 hover:opacity-100">
-            Termina Partita
-          </button>
-        )}
+        <EndGameButton />
       </div>
     )
   }
@@ -283,11 +311,7 @@ export default function GameBoard({
             <div key={i} className={`w-3 h-3 rounded-full ${i <= room.reveal_index ? 'bg-white' : 'bg-white/30'}`} />
           ))}
         </div>
-        {myPlayer.is_host && (
-          <button onClick={onEndGame} className="btn-danger mt-8 text-sm opacity-60 hover:opacity-100">
-            Termina Partita
-          </button>
-        )}
+        <EndGameButton />
       </div>
     )
   }
@@ -304,7 +328,6 @@ export default function GameBoard({
           </div>
         </div>
 
-        {/* Question */}
         <div className="w-full max-w-md bg-white/10 rounded-2xl p-4 mb-6 flex gap-4 items-start">
           <div className="jack-avatar w-12 h-12 text-xl flex-shrink-0">JB</div>
           <div>
@@ -313,14 +336,10 @@ export default function GameBoard({
           </div>
         </div>
 
-        {hasVoted || myVote ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-4">🗳️</div>
-            <p className="text-white text-xl font-bold">Voto inviato!</p>
-            <p className="text-teal-200 mt-2">Aspetta gli altri...</p>
+        {hasVoted && (
+          <div className="text-center mb-4">
+            <p className="text-teal-200 text-sm">Voto inviato! Aspetta gli altri...</p>
           </div>
-        ) : (
-          <p className="text-teal-200 text-sm mb-4">Tocca la risposta che ti fa ridere di più</p>
         )}
 
         <div className="flex gap-4 flex-wrap justify-center">
@@ -334,8 +353,8 @@ export default function GameBoard({
                 <AnswerCard
                   text={card.text}
                   voted={isVotedByMe}
-                  disabled={isMySubmission || hasVoted || !!myVote}
-                  onClick={() => !isMySubmission && handleVote(submission.id)}
+                  disabled={isMySubmission || hasVoted}
+                  onClick={() => !isMySubmission && !hasVoted && handleVote(submission.id)}
                   size="lg"
                   className="animate-slide-up"
                 />
@@ -348,35 +367,42 @@ export default function GameBoard({
             )
           })}
         </div>
-        {myPlayer.is_host && (
-          <button onClick={onEndGame} className="btn-danger mt-8 text-sm opacity-60 hover:opacity-100">
-            Termina Partita
-          </button>
-        )}
+        <EndGameButton />
       </div>
     )
   }
 
   // ─── RESULTS PHASE ───────────────────────────────────────────────────────────
   if (room.phase === 'results') {
-    const winCard = winnerSubmission ? getAnswerById(winnerSubmission.card_id) : null
+    const isTie = winnerSubmissions.length > 1
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-teal-900 to-teal-800 p-6">
         <div className="text-center animate-bounce-in">
-          <div className="text-5xl mb-4">🏆</div>
+          <div className="text-5xl mb-4">{isTie ? '🤝' : '🏆'}</div>
           <span className="phase-badge mb-4 inline-block">Risultati Round {room.current_round}</span>
           <h2 className="text-2xl font-black text-white mb-6">
-            {winnerPlayer ? `${winnerPlayer.name} vince il round!` : 'Pareggio!'}
+            {winnerPlayers.length === 0
+              ? 'Nessun vincitore'
+              : isTie
+              ? `Pareggio! ${winnerPlayers.map(p => p?.name).join(' e ')} vincono!`
+              : `${winnerPlayers[0]?.name} vince il round!`}
           </h2>
-          {winCard && (
-            <div className="mb-6 flex flex-col items-center gap-3">
-              <p className="text-teal-200 text-sm">La risposta vincente:</p>
-              <AnswerCard text={winCard.text} disabled size="lg" />
-            </div>
-          )}
-          <div className="mt-6">
-            <p className="text-teal-200 text-sm mb-4">Punteggi attuali:</p>
+
+          <div className="flex gap-4 justify-center flex-wrap mb-6">
+            {winnerSubmissions.map(ws => {
+              const card = getAnswerById(ws.card_id)
+              return card ? (
+                <div key={ws.id} className="flex flex-col items-center gap-2">
+                  <p className="text-teal-200 text-xs">La risposta vincente:</p>
+                  <AnswerCard text={card.text} disabled size="md" />
+                </div>
+              ) : null
+            })}
+          </div>
+
+          <div className="mt-4">
+            <p className="text-teal-200 text-sm mb-3">Punteggi:</p>
             <div className="flex flex-col gap-2 w-full max-w-xs mx-auto">
               {[...players].sort((a, b) => b.score - a.score).map((p) => (
                 <div key={p.id} className="flex justify-between bg-white/10 rounded-xl px-4 py-2">
@@ -386,14 +412,8 @@ export default function GameBoard({
               ))}
             </div>
           </div>
-          <div className="mt-6">
-            <Timer seconds={timeLeft} />
-          </div>
-          {myPlayer.is_host && (
-            <button onClick={onEndGame} className="btn-danger mt-6 text-sm">
-              Termina Partita
-            </button>
-          )}
+          <div className="mt-6"><Timer seconds={timeLeft} /></div>
+          <EndGameButton />
         </div>
       </div>
     )

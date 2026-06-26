@@ -148,21 +148,23 @@ export default function GamePage({ params }: PageProps) {
   }, [code, myPlayer])
 
   const handleSubmit = useCallback(async (cardId: number) => {
-    if (!myPlayer) return
-    await fetch(`/api/room/${code}/submit`, {
+    if (!myPlayer) return {}
+    const res = await fetch(`/api/room/${code}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: myPlayer.id, cardId }),
     })
+    return res.ok ? res.json() : {}
   }, [code, myPlayer])
 
   const handleVote = useCallback(async (submissionId: string) => {
-    if (!myPlayer) return
-    await fetch(`/api/room/${code}/vote`, {
+    if (!myPlayer) return {}
+    const res = await fetch(`/api/room/${code}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: myPlayer.id, submissionId }),
     })
+    return res.ok ? res.json() : {}
   }, [code, myPlayer])
 
   const handleEndGame = useCallback(async () => {

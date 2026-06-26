@@ -60,16 +60,10 @@ export default function Home() {
       const res = await fetch('/api/room/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ maxPlayers, totalRounds, sessionId }),
+        body: JSON.stringify({ maxPlayers, totalRounds, sessionId, hostName: hostName.trim() }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Errore'); setLoading(false); return }
-
-      // Update player name
-      const { getSupabaseClient } = await import('@/lib/supabase-client')
-      const supabase = getSupabaseClient()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from('players') as any).update({ name: hostName.trim() }).eq('id', data.playerId)
 
       localStorage.setItem(`player_${data.code}`, data.playerId)
       router.push(`/game/${data.code}`)

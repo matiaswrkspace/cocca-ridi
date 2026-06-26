@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: { params: { code: string } 
     submission_id: submissionId,
   })
 
-  // Check if all players voted — auto-advance
+  // Return counts so the client can trigger advance if everyone voted
   const { count: totalPlayers } = await supabase
     .from('players')
     .select('id', { count: 'exact', head: true })
@@ -62,14 +62,8 @@ export async function POST(req: Request, { params }: { params: { code: string } 
     .eq('room_id', room.id)
     .eq('round_num', room.current_round)
 
-  if ((totalVotes ?? 0) >= (totalPlayers ?? 0)) {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    fetch(`${baseUrl}/api/room/${code}/advance`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fromPhase: 'voting' }),
-    }).catch(() => {})
-  }
-
-  return NextResponse.json({ success: true })
+  return NextResponse.json({
+    success: true,
+    allVoted: (totalVotes ?? 0) >= (totalPlayers ?? 1),
+  })
 }

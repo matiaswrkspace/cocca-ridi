@@ -72,7 +72,7 @@ export interface AnswerCard {
 export const PHASE_DURATIONS: Partial<Record<GamePhase, number>> = {
   countdown: 15,
   cards: 30,
-  question: 30,
+  question: 10,
   selecting: 30,
   voting: 60,
   results: 6,

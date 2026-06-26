@@ -49,7 +49,7 @@ export async function POST(req: Request, { params }: { params: { code: string } 
   // Remove from hand
   await supabase.from('player_hands').delete().eq('player_id', playerId).eq('card_id', cardId)
 
-  // Check if all players submitted — auto advance
+  // Return counts so the client can trigger advance if everyone submitted
   const { count: totalPlayers } = await supabase
     .from('players')
     .select('id', { count: 'exact', head: true })
@@ -61,15 +61,8 @@ export async function POST(req: Request, { params }: { params: { code: string } 
     .eq('room_id', room.id)
     .eq('round_num', room.current_round)
 
-  if ((totalSubmissions ?? 0) >= (totalPlayers ?? 0)) {
-    // Auto-advance to revealing
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    fetch(`${baseUrl}/api/room/${code}/advance`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fromPhase: 'selecting' }),
-    }).catch(() => {})
-  }
-
-  return NextResponse.json({ success: true })
+  return NextResponse.json({
+    success: true,
+    allSubmitted: (totalSubmissions ?? 0) >= (totalPlayers ?? 1),
+  })
 }
