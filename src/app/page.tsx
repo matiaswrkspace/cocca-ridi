@@ -3,15 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-function generateSessionId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36)
-}
-
 function getSessionId(): string {
   if (typeof window === 'undefined') return ''
   let id = localStorage.getItem('cocca_session_id')
   if (!id) {
-    id = generateSessionId()
+    id = Math.random().toString(36).substring(2) + Date.now().toString(36)
     localStorage.setItem('cocca_session_id', id)
   }
   return id
@@ -31,7 +27,6 @@ export default function Home() {
   const [roomExists, setRoomExists] = useState(false)
 
   useEffect(() => {
-    // Check if a room already exists
     async function checkRoom() {
       try {
         const { getSupabaseClient } = await import('@/lib/supabase-client')
@@ -42,19 +37,16 @@ export default function Home() {
           .in('phase', ['waiting', 'countdown', 'cards', 'question', 'selecting', 'revealing', 'voting', 'results'])
           .limit(1)
         setRoomExists(!!(data && (data as unknown[]).length > 0))
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     }
     checkRoom()
-    const interval = setInterval(checkRoom, 5000)
-    return () => clearInterval(interval)
+    const iv = setInterval(checkRoom, 5000)
+    return () => clearInterval(iv)
   }, [])
 
   async function handleCreate() {
     if (!hostName.trim()) { setError('Inserisci il tuo nome'); return }
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const sessionId = getSessionId()
       const res = await fetch('/api/room/create', {
@@ -64,62 +56,62 @@ export default function Home() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Errore'); setLoading(false); return }
-
       localStorage.setItem(`player_${data.code}`, data.playerId)
       router.push(`/game/${data.code}`)
-    } catch {
-      setError('Errore di rete')
-      setLoading(false)
-    }
+    } catch { setError('Errore di rete'); setLoading(false) }
   }
 
   async function handleJoin() {
     if (!joinCode.trim()) { setError('Inserisci il codice'); return }
     if (!joinName.trim()) { setError('Inserisci il tuo nome'); return }
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const sessionId = getSessionId()
+      const code = joinCode.trim().toUpperCase()
       const res = await fetch('/api/room/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: joinCode.trim().toUpperCase(), name: joinName.trim(), sessionId }),
+        body: JSON.stringify({ code, name: joinName.trim(), sessionId }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Errore'); setLoading(false); return }
-
-      localStorage.setItem(`player_${joinCode.trim().toUpperCase()}`, data.playerId)
-      router.push(`/game/${joinCode.trim().toUpperCase()}`)
-    } catch {
-      setError('Errore di rete')
-      setLoading(false)
-    }
+      localStorage.setItem(`player_${code}`, data.playerId)
+      router.push(`/game/${code}`)
+    } catch { setError('Errore di rete'); setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #0d3d39 0%, #0f4f4a 50%, #136158 100%)' }}>
-      {/* Logo */}
-      <div className="text-center mb-12 animate-bounce-in">
-        <div className="text-7xl mb-4">🌴</div>
-        <h1 className="text-6xl font-black text-white tracking-tight mb-2" style={{ textShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-phase-lobby overflow-hidden">
+      {/* Ambient blobs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-teal-400/10 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-emerald-400/10 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-teal-300/5 blur-3xl" />
+      </div>
+
+      {/* Hero */}
+      <div className="relative z-10 text-center mb-12 animate-bounce-in">
+        <div className="text-8xl mb-4" style={{ filter: 'drop-shadow(0 8px 30px rgba(0,0,0,0.4))' }}>🌴</div>
+        <h1 className="text-6xl font-black text-white tracking-tight mb-2"
+          style={{ textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
           Cocca Ridi
         </h1>
-        <p className="text-teal-200 text-lg font-medium">Il gioco di carte più divertente d&apos;Italia</p>
-        <div className="flex items-center justify-center gap-3 mt-4 text-teal-300 text-sm">
-          <span>🎴 100 domande</span>
-          <span>·</span>
-          <span>🃏 500 risposte</span>
-          <span>·</span>
-          <span>👥 4-12 giocatori</span>
+        <p className="text-emerald-300 text-lg font-medium mb-5">
+          Il gioco di carte più divertente d&apos;Italia
+        </p>
+        <div className="flex items-center justify-center gap-4 text-sm">
+          <div className="glass px-4 py-2 rounded-full text-emerald-200 font-semibold">🎴 100 domande</div>
+          <div className="glass px-4 py-2 rounded-full text-emerald-200 font-semibold">🃏 500 risposte</div>
+          <div className="glass px-4 py-2 rounded-full text-emerald-200 font-semibold">👥 4-12 giocatori</div>
         </div>
       </div>
 
-      {/* Buttons */}
-      <div className="flex flex-col gap-4 w-full max-w-sm animate-slide-up">
+      {/* Main buttons */}
+      <div className="relative z-10 flex flex-col gap-4 w-full max-w-sm animate-slide-up">
         <button
           onClick={() => { setShowJoin(true); setShowCreate(false); setError('') }}
-          className="w-full py-5 rounded-2xl text-white font-black text-xl transition-all duration-200 hover:scale-105 active:scale-95"
-          style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', border: '2px solid rgba(255,255,255,0.25)' }}
+          className="w-full py-5 rounded-2xl font-black text-xl text-white transition-all duration-200 hover:scale-105 active:scale-95 glass"
+          style={{ border: '2px solid rgba(255,255,255,0.2)' }}
         >
           🚪 Accedi alla Stanza
         </button>
@@ -127,130 +119,153 @@ export default function Home() {
         <button
           onClick={() => { if (!roomExists) { setShowCreate(true); setShowJoin(false); setError('') } }}
           disabled={roomExists}
-          className="w-full py-5 rounded-2xl font-black text-xl transition-all duration-200"
-          style={{
-            background: roomExists ? 'rgba(255,255,255,0.05)' : 'white',
-            color: roomExists ? 'rgba(255,255,255,0.3)' : '#0f4f4a',
-            border: roomExists ? '2px solid rgba(255,255,255,0.1)' : '2px solid white',
-            cursor: roomExists ? 'not-allowed' : 'pointer',
-          }}
+          className={`w-full py-5 rounded-2xl font-black text-xl transition-all duration-200
+            ${roomExists
+              ? 'cursor-not-allowed opacity-40 glass text-white'
+              : 'bg-white text-teal-900 hover:scale-105 active:scale-95 shadow-2xl shadow-white/10'}`}
         >
           {roomExists ? '🔒 Stanza già in corso' : '✨ Crea Stanza'}
         </button>
+
         {roomExists && (
-          <p className="text-center text-teal-300 text-sm -mt-2">
-            C&apos;è già una stanza attiva. Aspetta che finisca oppure accedi con il codice.
+          <p className="text-center text-emerald-300/70 text-sm -mt-1 animate-fade-in">
+            Partita già attiva — accedi con il codice ricevuto
           </p>
         )}
       </div>
 
-      {/* Jack Black info */}
-      <div className="mt-10 flex items-center gap-3 text-teal-300 text-sm animate-fade-in">
-        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-base font-black text-white">JB</div>
-        <span>Il banco è <strong className="text-white">Jack Black</strong>, il re delle domande assurde</span>
+      {/* Jack Black badge */}
+      <div className="relative z-10 mt-10 flex items-center gap-3 glass px-5 py-3 rounded-full animate-fade-in">
+        <div className="jack-avatar w-9 h-9 text-xs">JB</div>
+        <span className="text-emerald-200 text-sm">
+          Il banco è <strong className="text-white">Jack Black</strong>, il re delle domande
+        </span>
       </div>
 
-      {/* Create Room Modal */}
+      {/* CREATE MODAL */}
       {showCreate && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-bounce-in">
-            <h2 className="text-2xl font-black text-gray-900 mb-1">Crea Stanza</h2>
-            <p className="text-gray-500 text-sm mb-6">Configura la tua partita</p>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-teal-600 flex items-center justify-center text-white text-xl">✨</div>
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Crea Stanza</h2>
+                <p className="text-gray-400 text-sm">Configura la tua partita</p>
+              </div>
+            </div>
 
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Il tuo nome</label>
+                <label className="block text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">Il tuo nome</label>
                 <input
                   type="text"
                   value={hostName}
                   onChange={e => setHostName(e.target.value)}
                   placeholder="Come ti chiami?"
-                  maxLength={30}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-teal-600 transition"
+                  maxLength={20}
+                  className="input-field"
                   onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                  autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Numero di giocatori: <span className="text-teal-700">{maxPlayers}</span>
+                <label className="block text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">
+                  Giocatori: <span className="text-teal-700 font-black text-base">{maxPlayers}</span>
                 </label>
-                <input
-                  type="range" min={4} max={12} value={maxPlayers}
+                <input type="range" min={4} max={12} value={maxPlayers}
                   onChange={e => setMaxPlayers(Number(e.target.value))}
-                  className="w-full accent-teal-700"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1"><span>4</span><span>12</span></div>
+                  className="w-full accent-teal-600 h-2" />
+                <div className="flex justify-between text-xs text-gray-300 mt-1"><span>4</span><span>12</span></div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Numero di round: <span className="text-teal-700">{totalRounds}</span>
+                <label className="block text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">
+                  Round: <span className="text-teal-700 font-black text-base">{totalRounds}</span>
                 </label>
-                <input
-                  type="range" min={5} max={15} value={totalRounds}
+                <input type="range" min={5} max={15} value={totalRounds}
                   onChange={e => setTotalRounds(Number(e.target.value))}
-                  className="w-full accent-teal-700"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1"><span>5</span><span>15</span></div>
+                  className="w-full accent-teal-600 h-2" />
+                <div className="flex justify-between text-xs text-gray-300 mt-1"><span>5</span><span>15</span></div>
               </div>
             </div>
 
-            {error && <p className="text-red-500 text-sm mt-4 font-medium">{error}</p>}
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="text-red-600 text-sm font-semibold">{error}</p>
+              </div>
+            )}
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowCreate(false)} className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50">
+              <button onClick={() => { setShowCreate(false); setError('') }}
+                className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-500 hover:bg-gray-50 transition-colors">
                 Annulla
               </button>
-              <button onClick={handleCreate} disabled={loading} className="flex-1 py-3 rounded-xl font-bold text-white disabled:opacity-50" style={{ background: '#0f4f4a' }}>
-                {loading ? 'Creando...' : 'Crea Stanza →'}
+              <button onClick={handleCreate} disabled={loading}
+                className="flex-2 px-8 py-3 rounded-xl font-black text-white transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #0d9488, #059669)', flex: 2 }}>
+                {loading ? '⏳ Creando...' : 'Crea Stanza →'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Join Room Modal */}
+      {/* JOIN MODAL */}
       {showJoin && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-bounce-in">
-            <h2 className="text-2xl font-black text-gray-900 mb-1">Accedi alla Stanza</h2>
-            <p className="text-gray-500 text-sm mb-6">Inserisci il codice ricevuto dall&apos;host</p>
-
-            <div className="space-y-5">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white text-xl">🚪</div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Codice stanza</label>
+                <h2 className="text-2xl font-black text-gray-900">Accedi alla Stanza</h2>
+                <p className="text-gray-400 text-sm">Usa il codice o il link ricevuto</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">Codice stanza</label>
                 <input
                   type="text"
                   value={joinCode}
                   onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder="Es. ABC123"
+                  placeholder="ABC123"
                   maxLength={6}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-2xl font-black tracking-widest text-center focus:outline-none focus:border-teal-600 transition uppercase"
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-2xl font-black tracking-[0.3em] text-center focus:outline-none focus:border-indigo-500 transition"
+                  style={{ fontFamily: 'monospace' }}
+                  autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Il tuo nome</label>
+                <label className="block text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">Il tuo nome</label>
                 <input
                   type="text"
                   value={joinName}
                   onChange={e => setJoinName(e.target.value)}
                   placeholder="Come ti chiami?"
-                  maxLength={30}
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-teal-600 transition"
+                  maxLength={20}
+                  className="input-field"
                   onKeyDown={e => e.key === 'Enter' && handleJoin()}
                 />
               </div>
             </div>
 
-            {error && <p className="text-red-500 text-sm mt-4 font-medium">{error}</p>}
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="text-red-600 text-sm font-semibold">{error}</p>
+              </div>
+            )}
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowJoin(false)} className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-600 hover:bg-gray-50">
+              <button onClick={() => { setShowJoin(false); setError('') }}
+                className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-bold text-gray-500 hover:bg-gray-50 transition-colors">
                 Annulla
               </button>
-              <button onClick={handleJoin} disabled={loading} className="flex-1 py-3 rounded-xl font-bold text-white disabled:opacity-50" style={{ background: '#0f4f4a' }}>
-                {loading ? 'Accedendo...' : 'Entra →'}
+              <button onClick={handleJoin} disabled={loading}
+                className="flex-2 px-8 py-3 rounded-xl font-black text-white transition-all disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', flex: 2 }}>
+                {loading ? '⏳ Accedendo...' : 'Entra →'}
               </button>
             </div>
           </div>

@@ -16,58 +16,66 @@ interface AnswerCardProps {
   size?: 'sm' | 'md' | 'lg'
 }
 
-const sizeClasses = {
-  sm: 'w-36 h-52 p-4 text-sm',
-  md: 'w-48 h-68 p-5 text-base',
-  lg: 'w-56 h-80 p-6 text-base',
+const SIZE = {
+  sm: { wrap: 'w-40 min-h-[90px] p-3', text: 'text-xs' },
+  md: { wrap: 'w-52 min-h-[120px] p-4', text: 'text-sm' },
+  lg: { wrap: 'w-60 min-h-[140px] p-5', text: 'text-sm' },
 }
 
-export function QuestionCard({ text, className = '', size = 'lg' }: QuestionCardProps) {
+export function QuestionCard({ text, className = '', size = 'md' }: QuestionCardProps) {
+  const s = SIZE[size]
   return (
-    <div className={`card-question flex flex-col justify-between ${sizeClasses[size]} ${className}`} style={{ minHeight: size === 'lg' ? 320 : size === 'md' ? 272 : 208 }}>
-      <div>
-        <p className="font-bold text-sm mb-3 opacity-80 tracking-wide">Cocca Ridi</p>
-        <p className="font-semibold leading-snug" style={{ fontSize: size === 'sm' ? 13 : 15 }}>{text}</p>
+    <div className={`card-question ${s.wrap} flex flex-col select-none ${className}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+          <span className="text-white font-black" style={{ fontSize: 10 }}>?</span>
+        </div>
+        <span className="text-purple-300 font-bold uppercase tracking-widest" style={{ fontSize: 9 }}>Domanda</span>
       </div>
-      <div className="flex items-center justify-between opacity-60">
-        <span className="text-2xl">🌴</span>
-        <span className="text-xl">🃏</span>
+      <p className={`text-white font-bold leading-snug flex-1 ${s.text}`}>{text}</p>
+      <div className="mt-3 pt-2 border-t border-white/10 flex items-center gap-1">
+        <div className="jack-avatar w-5 h-5 shrink-0 text-[8px]">JB</div>
+        <span className="text-purple-300 font-semibold" style={{ fontSize: 9 }}>Jack Black</span>
       </div>
     </div>
   )
 }
 
-export function AnswerCard({ text, selected, voted, disabled, onClick, className = '', size = 'lg' }: AnswerCardProps) {
+export function AnswerCard({ text, selected, voted, disabled, onClick, className = '', size = 'md' }: AnswerCardProps) {
+  const s = SIZE[size]
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`card-answer flex flex-col justify-between text-left transition-all duration-200 ${sizeClasses[size]} ${selected ? 'selected' : ''} ${voted ? 'voted' : ''} ${disabled ? 'cursor-default' : ''} ${className}`}
-      style={{ minHeight: size === 'lg' ? 320 : size === 'md' ? 272 : 208 }}
+    <div
+      onClick={!disabled ? onClick : undefined}
+      className={`card-answer ${s.wrap} flex flex-col relative overflow-hidden
+        ${selected ? 'selected' : ''}
+        ${voted ? 'voted' : ''}
+        ${disabled ? 'cursor-default' : 'cursor-pointer'}
+        ${className}`}
     >
-      <div>
-        <p className="font-bold text-xs mb-3 text-gray-400 tracking-wide">Cocca Ridi</p>
-        <p className="font-semibold leading-snug text-gray-800" style={{ fontSize: size === 'sm' ? 13 : 15 }}>{text}</p>
+      <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-[18px] transition-colors
+        ${selected ? 'bg-indigo-500' : voted ? 'bg-amber-500' : 'bg-gray-100'}`}
+      />
+      <div className="flex items-center gap-2 mt-1 mb-2">
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
+          ${selected ? 'border-indigo-500 bg-indigo-500' : voted ? 'border-amber-500 bg-amber-500' : 'border-gray-200 bg-white'}`}>
+          {selected && <span className="text-white font-black" style={{ fontSize: 9 }}>✓</span>}
+          {voted && <span className="text-white font-black" style={{ fontSize: 9 }}>★</span>}
+        </div>
+        <span className={`font-bold uppercase tracking-wider transition-colors`} style={{ fontSize: 9, color: selected ? '#6366f1' : voted ? '#f59e0b' : '#9ca3af' }}>
+          {selected ? 'Selezionata' : voted ? 'Votata' : 'Risposta'}
+        </span>
       </div>
-      <div className="flex items-center justify-between opacity-40">
-        <span className="text-xl">🌴</span>
-        {selected && <span className="text-green-600 font-bold text-sm">✓ Selezionata</span>}
-        {voted && <span className="text-amber-500 font-bold text-sm">★ Votata</span>}
-      </div>
-    </button>
+      <p className={`text-gray-800 font-bold leading-snug flex-1 ${s.text}`}>{text}</p>
+    </div>
   )
 }
 
-export function CardBack({ className = '', size = 'lg' }: { className?: string; size?: 'sm' | 'md' | 'lg' }) {
+export function CardBack({ className = '', size = 'md' }: { className?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const s = SIZE[size]
   return (
-    <div
-      className={`card-question flex items-center justify-center ${sizeClasses[size]} ${className}`}
-      style={{ minHeight: size === 'lg' ? 320 : size === 'md' ? 272 : 208 }}
-    >
-      <div className="text-center opacity-60">
-        <div className="text-4xl mb-2">🌴</div>
-        <div className="font-bold text-sm tracking-widest opacity-80">COCCA RIDI</div>
-      </div>
+    <div className={`card-question ${s.wrap} flex flex-col items-center justify-center select-none ${className}`}>
+      <div className="text-4xl mb-2">🃏</div>
+      <p className="text-purple-300 text-xs font-bold uppercase tracking-widest">Risposta</p>
     </div>
   )
 }

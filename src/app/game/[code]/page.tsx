@@ -25,8 +25,19 @@ export default function GamePage({ params }: PageProps) {
   const [myHand, setMyHand] = useState<PlayerHand[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [playerId, setPlayerId] = useState<string | null>(null)
 
-  const playerId = typeof window !== 'undefined' ? localStorage.getItem(`player_${code}`) : null
+  // Direct-link join states
+  const [joinName, setJoinName] = useState('')
+  const [joinLoading, setJoinLoading] = useState(false)
+  const [joinError, setJoinError] = useState('')
+
+  // Read playerId from localStorage once on client
+  useEffect(() => {
+    const stored = localStorage.getItem(`player_${code}`)
+    setPlayerId(stored)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code])
 
   // Load initial data
   useEffect(() => {
@@ -181,12 +192,35 @@ export default function GamePage({ params }: PageProps) {
     router.push('/')
   }, [code, router])
 
+  const handleDirectJoin = useCallback(async () => {
+    const name = joinName.trim()
+    if (!name || !room) return
+    setJoinLoading(true)
+    setJoinError('')
+    const sessionId = crypto.randomUUID()
+    const res = await fetch(`/api/room/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, name, sessionId }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setJoinError(data.error ?? 'Errore durante il join')
+      setJoinLoading(false)
+      return
+    }
+    localStorage.setItem(`player_${code}`, data.playerId)
+    setPlayerId(data.playerId)
+    setJoinLoading(false)
+  }, [joinName, room, code])
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-teal-900 to-teal-800">
-        <div className="text-center">
-          <div className="text-5xl mb-4 animate-spin">🌴</div>
-          <p className="text-white font-bold text-xl">Caricamento...</p>
+      <div className="min-h-screen flex items-center justify-center bg-phase-lobby">
+        <div className="text-center animate-fade-in">
+          <div className="text-6xl mb-4" style={{ animation: 'spin 2s linear infinite' }}>🌴</div>
+          <p className="text-white font-black text-2xl mb-1">Cocca Ridi</p>
+          <p className="text-emerald-300 font-medium">Caricamento in corso...</p>
         </div>
       </div>
     )
@@ -194,11 +228,12 @@ export default function GamePage({ params }: PageProps) {
 
   if (error || !room) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-teal-900 to-teal-800">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-phase-lobby p-6">
+        <div className="glass p-8 rounded-3xl text-center max-w-sm w-full animate-bounce-in">
           <div className="text-5xl mb-4">😕</div>
-          <p className="text-white font-bold text-xl mb-4">{error || 'Stanza non trovata'}</p>
-          <button onClick={() => router.push('/')} className="btn-primary bg-white text-teal-900">
+          <p className="text-white font-bold text-xl mb-2">{error || 'Stanza non trovata'}</p>
+          <p className="text-emerald-300 text-sm mb-6">Il link potrebbe non essere più valido.</p>
+          <button onClick={() => router.push('/')} className="btn-green w-full py-3">
             Torna al Menù
           </button>
         </div>
@@ -206,13 +241,64 @@ export default function GamePage({ params }: PageProps) {
     )
   }
 
+  // Direct join via link — room in waiting phase, no player session
+  if (!myPlayer && room && room.phase === 'waiting') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-phase-lobby p-6">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-teal-500/10 blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-emerald-500/10 blur-3xl" />
+        </div>
+        <div className="w-full max-w-sm relative z-10 animate-bounce-in">
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-2">🌴</div>
+            <h1 className="text-3xl font-black text-white">Cocca Ridi</h1>
+            <p className="text-emerald-300 text-sm mt-1 font-medium">Stanza <span className="font-black text-white">{room.code}</span></p>
+          </div>
+          <div className="glass p-6 rounded-3xl">
+            <h2 className="text-xl font-black text-white mb-1">Entra nella stanza!</h2>
+            <p className="text-emerald-300 text-sm mb-5 font-medium">
+              {players.length} {players.length === 1 ? 'giocatore' : 'giocatori'} già dentro
+            </p>
+            <label className="block text-white/70 text-xs font-bold uppercase tracking-wide mb-2">
+              Il tuo nome
+            </label>
+            <input
+              className="input-field mb-4"
+              placeholder="Come ti chiami?"
+              value={joinName}
+              onChange={e => setJoinName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleDirectJoin()}
+              maxLength={20}
+              autoFocus
+            />
+            {joinError && (
+              <p className="text-red-400 text-sm font-semibold mb-3 bg-red-500/10 px-3 py-2 rounded-xl">{joinError}</p>
+            )}
+            <button
+              onClick={handleDirectJoin}
+              disabled={joinLoading || !joinName.trim()}
+              className={`w-full py-4 rounded-2xl font-black text-lg transition-all duration-300
+                ${joinName.trim() && !joinLoading
+                  ? 'btn-green'
+                  : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
+            >
+              {joinLoading ? 'Entro...' : 'Entra nella stanza →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!myPlayer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-teal-900 to-teal-800">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-phase-lobby">
+        <div className="text-center glass p-8 rounded-3xl max-w-sm mx-5">
           <div className="text-5xl mb-4">🔐</div>
           <p className="text-white font-bold text-xl mb-4">Sessione non trovata</p>
-          <button onClick={() => router.push('/')} className="btn-primary bg-white text-teal-900">
+          <p className="text-emerald-300 text-sm mb-6">La partita è già iniziata o la stanza non esiste.</p>
+          <button onClick={() => router.push('/')} className="btn-green w-full py-3">
             Torna al Menù
           </button>
         </div>
