@@ -31,27 +31,34 @@ export default function GamePage({ params }: PageProps) {
   // Load initial data
   useEffect(() => {
     async function load() {
-      const { data: roomData } = await supabase.from('rooms').select('*').eq('code', code).single()
-      if (!roomData) { setError('Stanza non trovata'); setLoading(false); return }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rawRoom } = await supabase.from('rooms').select('*').eq('code', code).single() as any
+      if (!rawRoom) { setError('Stanza non trovata'); setLoading(false); return }
+      const roomData = rawRoom as Room
       setRoom(roomData)
 
-      const { data: playersData } = await supabase.from('players').select('*').eq('room_id', roomData.id).order('created_at')
-      setPlayers(playersData ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: rawPlayers } = await supabase.from('players').select('*').eq('room_id', roomData.id).order('created_at') as any
+      const playersData = (rawPlayers ?? []) as Player[]
+      setPlayers(playersData)
 
       if (playerId) {
-        const me = playersData?.find(p => p.id === playerId)
+        const me = playersData.find((p: Player) => p.id === playerId)
         setMyPlayer(me ?? null)
 
         // Load hand
-        const { data: handData } = await supabase.from('player_hands').select('*').eq('player_id', playerId).eq('room_id', roomData.id)
-        setMyHand(handData ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rawHand } = await supabase.from('player_hands').select('*').eq('player_id', playerId).eq('room_id', roomData.id) as any
+        setMyHand((rawHand ?? []) as PlayerHand[])
       }
 
       if (roomData.current_round > 0) {
-        const { data: subData } = await supabase.from('round_submissions').select('*').eq('room_id', roomData.id).eq('round_num', roomData.current_round)
-        setSubmissions(subData ?? [])
-        const { data: voteData } = await supabase.from('round_votes').select('*').eq('room_id', roomData.id).eq('round_num', roomData.current_round)
-        setVotes(voteData ?? [])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rawSubs } = await supabase.from('round_submissions').select('*').eq('room_id', roomData.id).eq('round_num', roomData.current_round) as any
+        setSubmissions((rawSubs ?? []) as RoundSubmission[])
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: rawVotes } = await supabase.from('round_votes').select('*').eq('room_id', roomData.id).eq('round_num', roomData.current_round) as any
+        setVotes((rawVotes ?? []) as RoundVote[])
       }
 
       setLoading(false)
@@ -71,28 +78,32 @@ export default function GamePage({ params }: PageProps) {
         async (payload) => {
           const newRoom = payload.new as Room
           setRoom(newRoom)
-          // When round changes, reload submissions/votes
           if (newRoom.current_round > 0) {
-            const { data: subData } = await supabase.from('round_submissions').select('*').eq('room_id', newRoom.id).eq('round_num', newRoom.current_round)
-            setSubmissions(subData ?? [])
-            const { data: voteData } = await supabase.from('round_votes').select('*').eq('room_id', newRoom.id).eq('round_num', newRoom.current_round)
-            setVotes(voteData ?? [])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: s } = await supabase.from('round_submissions').select('*').eq('room_id', newRoom.id).eq('round_num', newRoom.current_round) as any
+            setSubmissions((s ?? []) as RoundSubmission[])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: v } = await supabase.from('round_votes').select('*').eq('room_id', newRoom.id).eq('round_num', newRoom.current_round) as any
+            setVotes((v ?? []) as RoundVote[])
           }
         })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${room.id}` },
         async () => {
-          const { data } = await supabase.from('players').select('*').eq('room_id', room.id).order('created_at')
-          setPlayers(data ?? [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data } = await supabase.from('players').select('*').eq('room_id', room.id).order('created_at') as any
+          const ps = (data ?? []) as Player[]
+          setPlayers(ps)
           if (playerId) {
-            const me = data?.find(p => p.id === playerId)
+            const me = ps.find((p: Player) => p.id === playerId)
             setMyPlayer(me ?? null)
           }
         })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'player_hands', filter: `room_id=eq.${room.id}` },
         async () => {
           if (!playerId) return
-          const { data } = await supabase.from('player_hands').select('*').eq('player_id', playerId).eq('room_id', room.id)
-          setMyHand(data ?? [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data } = await supabase.from('player_hands').select('*').eq('player_id', playerId).eq('room_id', room.id) as any
+          setMyHand((data ?? []) as PlayerHand[])
         })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'round_submissions', filter: `room_id=eq.${room.id}` },
         async (payload) => {

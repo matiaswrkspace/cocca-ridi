@@ -36,12 +36,12 @@ export default function Home() {
       try {
         const { getSupabaseClient } = await import('@/lib/supabase-client')
         const supabase = getSupabaseClient()
-        const { data } = await supabase
-          .from('rooms')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data } = await (supabase.from('rooms') as any)
           .select('id')
           .in('phase', ['waiting', 'countdown', 'cards', 'question', 'selecting', 'revealing', 'voting', 'results'])
           .limit(1)
-        setRoomExists(!!(data && data.length > 0))
+        setRoomExists(!!(data && (data as unknown[]).length > 0))
       } catch {
         // ignore
       }
@@ -68,7 +68,8 @@ export default function Home() {
       // Update player name
       const { getSupabaseClient } = await import('@/lib/supabase-client')
       const supabase = getSupabaseClient()
-      await supabase.from('players').update({ name: hostName.trim() }).eq('id', data.playerId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('players') as any).update({ name: hostName.trim() }).eq('id', data.playerId)
 
       localStorage.setItem(`player_${data.code}`, data.playerId)
       router.push(`/game/${data.code}`)
