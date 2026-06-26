@@ -139,7 +139,7 @@ export default function Home() {
       <div className="relative z-10 mt-10 flex items-center gap-3 glass px-5 py-3 rounded-full animate-fade-in">
         <div className="jack-avatar w-9 h-9 text-xs">JB</div>
         <span className="text-emerald-200 text-sm">
-          Il banco è <strong className="text-white">Jack Black</strong>, il re delle domande
+          Il banco è <strong className="text-white">Jack Black</strong>. cala le mutandine sciocchina
         </span>
       </div>
 
