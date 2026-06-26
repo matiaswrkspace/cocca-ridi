@@ -10,87 +10,112 @@ export default function OtterLogo({ size = 80, className = '' }: OtterLogoProps)
     <svg
       width={size}
       height={size}
-      viewBox="0 0 220 220"
+      viewBox="0 0 400 400"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
       <defs>
-        <radialGradient id="otter-head-light" cx="52%" cy="32%" r="68%">
-          <stop offset="0%" stopColor="rgba(255,200,120,0.14)" />
-          <stop offset="100%" stopColor="rgba(0,0,0,0.22)" />
+        {/* Depth shading on head */}
+        <radialGradient id="ol-head" cx="44%" cy="28%" r="70%">
+          <stop offset="0%"   stopColor="rgba(240,170,80,0.12)" />
+          <stop offset="55%"  stopColor="rgba(0,0,0,0)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.28)" />
         </radialGradient>
-        <radialGradient id="otter-face-light" cx="50%" cy="40%" r="60%">
-          <stop offset="0%" stopColor="rgba(255,220,160,0.2)" />
-          <stop offset="100%" stopColor="rgba(0,0,0,0.1)" />
+        {/* Soft light on face area */}
+        <radialGradient id="ol-face" cx="50%" cy="38%" r="58%">
+          <stop offset="0%"   stopColor="rgba(255,230,170,0.22)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.06)" />
+        </radialGradient>
+        {/* Water */}
+        <radialGradient id="ol-water" cx="50%" cy="40%" r="50%">
+          <stop offset="0%"   stopColor="#9BBFCB" />
+          <stop offset="100%" stopColor="#7AAABB" />
         </radialGradient>
       </defs>
 
-      {/* ── Water ripples ─────────────────────────────────────── */}
-      <ellipse cx="110" cy="196" rx="98" ry="20" fill="#6BAFC2" opacity="0.30" />
-      <ellipse cx="110" cy="190" rx="78" ry="15" fill="#7DC0CE" opacity="0.42" />
-      <ellipse cx="110" cy="184" rx="59" ry="11" fill="#8DCBD8" opacity="0.55" />
+      {/* ── Water ripples ──────────────────────────────────────────── */}
+      <ellipse cx="200" cy="378" rx="188" ry="22" fill="#6FA8BA" opacity="0.32" />
+      <ellipse cx="200" cy="367" rx="158" ry="17" fill="#7AB3C4" opacity="0.44" />
+      <ellipse cx="200" cy="357" rx="128" ry="13" fill="#85BDCC" opacity="0.56" />
 
-      {/* ── Body emerging from water ───────────────────────── */}
-      <ellipse cx="110" cy="178" rx="57" ry="38" fill="#7A4926" />
+      {/* ── Body ───────────────────────────────────────────────────── */}
+      <ellipse cx="200" cy="340" rx="116" ry="62" fill="#7A4820" />
 
-      {/* ── Ears (behind head) ────────────────────────────── */}
-      <circle cx="49"  cy="56" r="21" fill="#5A3315" />
-      <circle cx="49"  cy="56" r="13" fill="#8A5430" />
-      <circle cx="171" cy="56" r="21" fill="#5A3315" />
-      <circle cx="171" cy="56" r="13" fill="#8A5430" />
+      {/* ── Ears (drawn before head so head overlaps base) ─────────── */}
+      <circle cx="78"  cy="92"  r="37" fill="#58300E" />
+      <circle cx="78"  cy="92"  r="22" fill="#7A4620" />
+      <circle cx="322" cy="92"  r="37" fill="#58300E" />
+      <circle cx="322" cy="92"  r="22" fill="#7A4620" />
 
-      {/* ── Main head ─────────────────────────────────────── */}
-      <circle cx="110" cy="108" r="77" fill="#8C5B30" />
-      <circle cx="110" cy="108" r="77" fill="url(#otter-head-light)" />
+      {/* ── Main head ──────────────────────────────────────────────── */}
+      <circle cx="200" cy="188" r="143" fill="#8C5226" />
+      {/* Depth/sheen overlay */}
+      <circle cx="200" cy="188" r="143" fill="url(#ol-head)" />
 
-      {/* ── Face / snout lighter area ──────────────────────── */}
-      <ellipse cx="110" cy="130" rx="50" ry="46" fill="#C28848" />
-      <ellipse cx="110" cy="152" rx="37" ry="32" fill="#CEA260" />
-      <ellipse cx="110" cy="152" rx="37" ry="32" fill="url(#otter-face-light)" />
+      {/* ── Light face area (3 layered ovals for soft transition) ───── */}
+      {/* Outer edge of lighter zone */}
+      <ellipse cx="200" cy="228" rx="118" ry="108" fill="#C29860" />
+      {/* Mid */}
+      <ellipse cx="200" cy="240" rx="100" ry="90"  fill="#CDA86C" />
+      {/* Chin / brightest area */}
+      <ellipse cx="200" cy="258" rx="78"  ry="70"  fill="#DABC82" />
+      {/* Soft light */}
+      <ellipse cx="200" cy="228" rx="118" ry="108" fill="url(#ol-face)" />
 
-      {/* ── Left eye ──────────────────────────────────────── */}
-      <circle cx="81" cy="94" r="18" fill="#160C05" />
-      {/* shine */}
-      <circle cx="88" cy="85" r="6.5" fill="white" />
-      <circle cx="87" cy="84" r="3"   fill="white" opacity="0.55" />
+      {/* ── Eyebrow shadow (dark arcs above each eye) ──────────────── */}
+      <ellipse cx="157" cy="155" rx="33" ry="13" fill="#4A2A0A" opacity="0.45" transform="rotate(-8 157 155)" />
+      <ellipse cx="243" cy="155" rx="33" ry="13" fill="#4A2A0A" opacity="0.45" transform="rotate(8  243 155)" />
 
-      {/* ── Right eye ─────────────────────────────────────── */}
-      <circle cx="139" cy="94" r="18" fill="#160C05" />
-      {/* shine */}
-      <circle cx="146" cy="85" r="6.5" fill="white" />
-      <circle cx="145" cy="84" r="3"   fill="white" opacity="0.55" />
+      {/* ── Left eye ───────────────────────────────────────────────── */}
+      <circle cx="158" cy="176" r="26"  fill="#24150A" />
+      {/* Shine — top-right of pupil */}
+      <circle cx="170" cy="163" r="10"  fill="white" />
+      <circle cx="168" cy="162" r="5"   fill="white" opacity="0.5" />
 
-      {/* ── Nose ──────────────────────────────────────────── */}
-      <ellipse cx="110" cy="117" rx="12" ry="10" fill="#1E0B05" />
-      <ellipse cx="107" cy="114" rx="4"  ry="3"  fill="rgba(255,255,255,0.22)" />
+      {/* ── Right eye ──────────────────────────────────────────────── */}
+      <circle cx="242" cy="176" r="26"  fill="#24150A" />
+      <circle cx="254" cy="163" r="10"  fill="white" />
+      <circle cx="252" cy="162" r="5"   fill="white" opacity="0.5" />
 
-      {/* ── Mouth (wide open smile) ───────────────────────── */}
-      {/* Outer shape – big open curve */}
-      <path d="M 75 126 Q 110 182 145 126" fill="#A82828" />
-      {/* Interior pink */}
-      <path d="M 79 129 Q 110 172 141 129 Q 125 150 110 154 Q 95 150 79 129 Z" fill="#CE4848" />
-      {/* Tongue hint */}
-      <ellipse cx="110" cy="158" rx="18" ry="10" fill="#D86060" />
-      {/* Upper teeth line */}
-      <path d="M 79 129 Q 95 138 110 138 Q 125 138 141 129"
-        fill="none" stroke="#EDE5D5" strokeWidth="2.5" strokeLinecap="round" />
+      {/* ── Nose — large dark chocolate shape ──────────────────────── */}
+      {/* Main nose body */}
+      <ellipse cx="200" cy="216" rx="30" ry="23" fill="#331A0A" />
+      {/* Nostril bump left */}
+      <ellipse cx="188" cy="212" rx="10" ry="7"  fill="#28120A" />
+      {/* Nostril bump right */}
+      <ellipse cx="212" cy="212" rx="10" ry="7"  fill="#28120A" />
+      {/* Highlight */}
+      <ellipse cx="193" cy="208" rx="7"  ry="5"  fill="rgba(255,255,255,0.18)" />
 
-      {/* ── Whiskers left ─────────────────────────────────── */}
-      <line x1="73" y1="119" x2="8"   y2="107" stroke="#E2CE8C" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="73" y1="127" x2="8"   y2="127" stroke="#E2CE8C" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="73" y1="135" x2="8"   y2="147" stroke="#E2CE8C" strokeWidth="1.8" strokeLinecap="round" />
+      {/* ── Mouth — open happy smile ───────────────────────────────── */}
+      {/* Outer dark fill (mouth opening shape) */}
+      <path d="M 158 244 Q 158 292 200 295 Q 242 292 242 244" fill="#962222" />
+      {/* Inner pink / interior */}
+      <path d="M 162 246 Q 164 288 200 291 Q 236 288 238 246 Q 216 268 200 272 Q 184 268 162 246 Z" fill="#C84848" />
+      {/* Tongue — rounded visible pink shape */}
+      <ellipse cx="200" cy="276" rx="28" ry="18" fill="#D06870" />
+      {/* Upper lip / gum edge (cream line) */}
+      <path d="M 161 245 Q 180 256 200 256 Q 220 256 239 245"
+        fill="none" stroke="#EEE4D4" strokeWidth="3" strokeLinecap="round" />
 
-      {/* ── Whiskers right ────────────────────────────────── */}
-      <line x1="147" y1="119" x2="212" y2="107" stroke="#E2CE8C" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="147" y1="127" x2="212" y2="127" stroke="#E2CE8C" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="147" y1="135" x2="212" y2="147" stroke="#E2CE8C" strokeWidth="1.8" strokeLinecap="round" />
+      {/* ── Whiskers left — 4 whiskers ─────────────────────────────── */}
+      <line x1="148" y1="214" x2="12"  y2="192" stroke="#E4D498" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="148" y1="226" x2="12"  y2="226" stroke="#E4D498" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="148" y1="238" x2="12"  y2="260" stroke="#E4D498" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="148" y1="204" x2="32"  y2="174" stroke="#E4D498" strokeWidth="2"   strokeLinecap="round" />
 
-      {/* ── Water splash drops ────────────────────────────── */}
-      <ellipse cx="28"  cy="155" rx="5"   ry="8.5" fill="#7DC0CE" transform="rotate(-28 28 155)"  />
-      <ellipse cx="192" cy="155" rx="5"   ry="8.5" fill="#7DC0CE" transform="rotate(28 192 155)"  />
-      <ellipse cx="16"  cy="142" rx="3.5" ry="6"   fill="#8DCBD8" transform="rotate(-15 16 142)"  />
-      <ellipse cx="204" cy="142" rx="3.5" ry="6"   fill="#8DCBD8" transform="rotate(15 204 142)"  />
+      {/* ── Whiskers right — 4 whiskers ────────────────────────────── */}
+      <line x1="252" y1="214" x2="388" y2="192" stroke="#E4D498" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="252" y1="226" x2="388" y2="226" stroke="#E4D498" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="252" y1="238" x2="388" y2="260" stroke="#E4D498" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="252" y1="204" x2="368" y2="174" stroke="#E4D498" strokeWidth="2"   strokeLinecap="round" />
+
+      {/* ── Water splash drops ─────────────────────────────────────── */}
+      <ellipse cx="54"  cy="308" rx="10" ry="16" fill="#7AB3C4" transform="rotate(-28 54 308)"  />
+      <ellipse cx="34"  cy="290" rx="7"  ry="11" fill="#85BDCC" transform="rotate(-16 34 290)"  />
+      <ellipse cx="346" cy="308" rx="10" ry="16" fill="#7AB3C4" transform="rotate(28 346 308)"   />
+      <ellipse cx="366" cy="290" rx="7"  ry="11" fill="#85BDCC" transform="rotate(16 366 290)"   />
     </svg>
   )
 }
