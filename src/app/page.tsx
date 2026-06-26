@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import OtterLogo from '@/components/OtterLogo'
 
 function getSessionId(): string {
   if (typeof window === 'undefined') return ''
@@ -91,7 +92,7 @@ export default function Home() {
 
       {/* Hero */}
       <div className="relative z-10 text-center mb-12 animate-bounce-in">
-        <div className="text-8xl mb-4" style={{ filter: 'drop-shadow(0 8px 30px rgba(0,0,0,0.4))' }}>🌴</div>
+        <OtterLogo size={110} className="mx-auto mb-2" />
         <h1 className="text-6xl font-black text-white tracking-tight mb-2"
           style={{ textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
           Cocca Ridi

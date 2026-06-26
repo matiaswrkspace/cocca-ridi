@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { Room, Player } from '@/types/game'
+import OtterLogo from './OtterLogo'
 
 interface LobbyProps {
   room: Room
@@ -55,7 +56,7 @@ export default function Lobby({ room, players, myPlayer, onStart }: LobbyProps) 
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="text-5xl mb-2 animate-bounce">🌴</div>
+          <OtterLogo size={88} className="mx-auto mb-1 animate-bounce" />
           <h1 className="text-4xl font-black text-white tracking-tight">Cocca Ridi</h1>
           <p className="text-emerald-300 mt-1 text-sm font-medium">Il gioco che fa ridere tutti</p>
         </div>

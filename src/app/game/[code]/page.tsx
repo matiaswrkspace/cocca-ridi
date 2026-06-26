@@ -7,6 +7,7 @@ import { getSupabaseClient } from '@/lib/supabase-client'
 import Lobby from '@/components/Lobby'
 import GameBoard from '@/components/GameBoard'
 import Podium from '@/components/Podium'
+import OtterLogo from '@/components/OtterLogo'
 
 interface PageProps {
   params: { code: string }
@@ -218,7 +219,7 @@ export default function GamePage({ params }: PageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-phase-lobby">
         <div className="text-center animate-fade-in">
-          <div className="text-6xl mb-4" style={{ animation: 'spin 2s linear infinite' }}>🌴</div>
+          <OtterLogo size={100} className="mx-auto mb-3 animate-bounce" />
           <p className="text-white font-black text-2xl mb-1">Cocca Ridi</p>
           <p className="text-emerald-300 font-medium">Caricamento in corso...</p>
         </div>
@@ -251,7 +252,7 @@ export default function GamePage({ params }: PageProps) {
         </div>
         <div className="w-full max-w-sm relative z-10 animate-bounce-in">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-2">🌴</div>
+            <OtterLogo size={90} className="mx-auto mb-1" />
             <h1 className="text-3xl font-black text-white">Cocca Ridi</h1>
             <p className="text-emerald-300 text-sm mt-1 font-medium">Stanza <span className="font-black text-white">{room.code}</span></p>
           </div>
