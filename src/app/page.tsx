@@ -98,7 +98,7 @@ export default function Home() {
           Cocca Ridi
         </h1>
         <p className="text-emerald-300 text-lg font-medium mb-5">
-          Il gioco di carte più divertente d&apos;Italia
+          Ma se ridi esclie
         </p>
         <div className="flex items-center justify-center gap-4 text-sm">
           <div className="glass px-4 py-2 rounded-full text-emerald-200 font-semibold">🎴 100 domande</div>

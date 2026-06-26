@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Cocca Ridi',
-  description: "Il gioco di carte più divertente d'Italia",
+  description: "Ma se ridi esclie",
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32' },
