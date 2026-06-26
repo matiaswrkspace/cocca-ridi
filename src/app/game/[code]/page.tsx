@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Room, Player, RoundSubmission, RoundVote, PlayerHand } from '@/types/game'
 import { getSupabaseClient } from '@/lib/supabase-client'
@@ -27,6 +27,10 @@ export default function GamePage({ params }: PageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [playerId, setPlayerId] = useState<string | null>(null)
+
+  // Always-fresh ref for room — avoids stale closures in Realtime callbacks
+  const roomRef = useRef<Room | null>(null)
+  useEffect(() => { roomRef.current = room }, [room])
 
   // Direct-link join states
   const [joinName, setJoinName] = useState('')
@@ -133,22 +137,26 @@ export default function GamePage({ params }: PageProps) {
           setMyHand((data ?? []) as PlayerHand[])
         })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'round_submissions', filter: `room_id=eq.${room.id}` },
-        async (payload) => {
+        (payload) => {
           const newSub = payload.new as RoundSubmission
-          if (room && newSub.round_num === room.current_round) {
-            setSubmissions(prev => [...prev.filter(s => s.id !== newSub.id), newSub])
+          // Use roomRef (always fresh) to avoid stale closure bug where
+          // room.current_round was 0 at subscription creation time
+          const cur = roomRef.current
+          if (cur && newSub.round_num === cur.current_round) {
+            setSubmissions(prev => prev.some(s => s.id === newSub.id) ? prev : [...prev, newSub])
           }
         })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'round_submissions', filter: `room_id=eq.${room.id}` },
-        async (payload) => {
+        (payload) => {
           const updated = payload.new as RoundSubmission
           setSubmissions(prev => prev.map(s => s.id === updated.id ? updated : s))
         })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'round_votes', filter: `room_id=eq.${room.id}` },
-        async (payload) => {
+        (payload) => {
           const newVote = payload.new as RoundVote
-          if (room && newVote.round_num === room.current_round) {
-            setVotes(prev => [...prev.filter(v => v.id !== newVote.id), newVote])
+          const cur = roomRef.current
+          if (cur && newVote.round_num === cur.current_round) {
+            setVotes(prev => prev.some(v => v.id === newVote.id) ? prev : [...prev, newVote])
           }
         })
       .subscribe()
@@ -181,8 +189,17 @@ export default function GamePage({ params }: PageProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: myPlayer.id, cardId }),
     })
-    return res.ok ? res.json() : {}
-  }, [code, myPlayer])
+    if (!res.ok) return {}
+    const data = await res.json()
+    // Immediately refresh submissions so our own card appears in the counter
+    const cur = roomRef.current
+    if (cur && cur.current_round > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: subs } = await (supabase.from('round_submissions').select('*').eq('room_id', cur.id).eq('round_num', cur.current_round) as any)
+      if (subs) setSubmissions(subs as RoundSubmission[])
+    }
+    return data
+  }, [code, myPlayer, supabase])
 
   const handleVote = useCallback(async (submissionId: string) => {
     if (!myPlayer) return {}
@@ -191,8 +208,17 @@ export default function GamePage({ params }: PageProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ playerId: myPlayer.id, submissionId }),
     })
-    return res.ok ? res.json() : {}
-  }, [code, myPlayer])
+    if (!res.ok) return {}
+    const data = await res.json()
+    // Immediately refresh votes so our own vote appears in the counter
+    const cur = roomRef.current
+    if (cur && cur.current_round > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: vs } = await (supabase.from('round_votes').select('*').eq('room_id', cur.id).eq('round_num', cur.current_round) as any)
+      if (vs) setVotes(vs as RoundVote[])
+    }
+    return data
+  }, [code, myPlayer, supabase])
 
   const handleEndGame = useCallback(async () => {
     if (!myPlayer) return
